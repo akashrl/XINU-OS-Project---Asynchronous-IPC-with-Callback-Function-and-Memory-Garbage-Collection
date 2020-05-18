@@ -1,0 +1,132 @@
+/* mysend.c - mysend */
+
+#include <xinu.h>
+
+/*------------------------------------------------------------------------
+ *  mysend  -  Pass a message to a process and start recipient if waiting
+ *------------------------------------------------------------------------
+ */
+syscall	mysend(
+	  pid32		pid,		/* ID of recipient process	*/
+	  umsg32	msg		/* Contents of message		*/
+	)
+{
+	intmask	mask;			/* Saved interrupt mask		*/
+	struct	procent *prptr;		/* Ptr to process's table entry	*/
+	void usercb(void);
+
+	mask = disable();
+	if (isbadpid(pid)) {
+		restore(mask);
+		return SYSERR;
+	}
+	kprintf("S currpid of send: %d\n", currpid);
+	kprintf("pid received in send: %d\n", pid);
+	prptr = &proctab[pid];
+	kprintf("In send prptr->prcbptr: (0x%08x)\n", prptr->prcbptr);
+	kprintf("In send *(prptr->prcbptr): (0x%08x)\n", *(prptr->prcbptr));
+//	if (prptr->prhasmsg) {
+//		restore(mask);
+//		return SYSERR;
+//	}
+//	prptr->prmsg = msg;		/* Deliver message		*/
+//	prptr->prhasmsg = TRUE;		/* Indicate message is waiting	*/
+
+
+	/* Added for Lab 5 Part 3.5 */
+
+	prptr->prtmpvalid = 1;
+	prptr->prtmpbuf = msg;
+
+	if (prptr->prstate == PR_SLEEP) { // Case 1
+
+        	// return address manipulation start ***************
+        	int stkframes = 3; // Number of nested function calls while calling sleepms()
+
+        	unsigned int * retaddr = prptr->prstkbase; // Search through base pointers to find return address
+        	unsigned int * prevbaseptr = prptr->prstkbase; // Search through base pointers to find return address
+
+        	while (stkframes > 0) { // Loop through to find third stack frame return address
+                	while (*retaddr != prevbaseptr) {
+                        	retaddr = retaddr - 1;
+               		}
+                	prevbaseptr = retaddr;
+                	stkframes = stkframes - 1;
+        	}
+
+        	retaddr = retaddr + 1; // Copy return address one below base pointer
+
+        	*(retaddr) = prptr->prcbptr + 3; // Replace return address with function's address
+//		*(retaddr) = &usercb + 3;
+       		// return address manipulation end ********************
+
+
+        	kprintf("send address from send + 0: (0x%08x)\n", &usercb + 0);
+        	kprintf("send address from send + 1: (0x%08x)\n", &usercb + 1);
+        	kprintf("send address from send + 2: (0x%08x)\n", &usercb + 2);
+        	kprintf("send address from send + 3: (0x%08x)\n", &usercb + 3);
+        	kprintf("In send prptr->prcbptr + 3: (0x%08x)\n", prptr->prcbptr + 3);
+
+        	kprintf("From send, message in prmbufptr is %s\n", prptr->prmbufptr);
+        	kprintf("From send, message in prtmpbuf is %s\n", prptr->prtmpbuf);	
+	}
+	
+	if (prptr->prstate == PR_READY) {
+			// Add	
+	}
+
+	if (prptr->prcbvalid == 1 && prptr->prtmpvalid == 1) {
+		// Add	
+	}
+
+	/* End Lab 5 code */
+
+/*
+	prptr->prtmpvalid = 1;
+	prptr->prtmpbuf = msg;
+
+	// return address manipulation start ***************
+        int stkframes = 3; // Number of nested function calls while calling sleepms()
+
+        unsigned int * retaddr = prptr->prstkbase; // Search through base pointers to find return address
+        unsigned int * prevbaseptr = prptr->prstkbase; // Search through base pointers to find return address
+    
+        while (stkframes > 0) { // Loop through to find third stack frame return address
+                while (*retaddr != prevbaseptr) {
+                        retaddr = retaddr - 1;
+                }   
+                prevbaseptr = retaddr;
+                stkframes = stkframes - 1;
+        }   
+
+        retaddr = retaddr + 1; // Copy return address one below base pointer
+
+        *(retaddr) = prptr->prcbptr + 3; // Replace return address with function's address
+//	*(retaddr) = &usercb + 3;
+	// return address manipulation end ********************
+
+
+	kprintf("send address from send + 0: (0x%08x)\n", &usercb + 0);
+	kprintf("send address from send + 1: (0x%08x)\n", &usercb + 1);
+	kprintf("send address from send + 2: (0x%08x)\n", &usercb + 2);
+	kprintf("send address from send + 3: (0x%08x)\n", &usercb + 3);
+	kprintf("In send prptr->prcbptr + 3: (0x%08x)\n", prptr->prcbptr + 3);
+
+        kprintf("From send, message in prmbufptr is %s\n", prptr->prmbufptr);
+        kprintf("From send, message in prtmpbuf is %s\n", prptr->prtmpbuf);
+*/
+	/* End Lab 5 code */
+
+	/* If recipient waiting or in timed-wait make it ready */
+
+/*
+	if (prptr->prstate == PR_RECV) {
+		ready(pid);
+	} else if (prptr->prstate == PR_RECTIM) {
+		unsleep(pid);
+		ready(pid);
+	}
+*/
+	restore(mask);		/* Restore interrupts */
+	return OK;
+}
